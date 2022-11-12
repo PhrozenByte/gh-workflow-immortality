@@ -10,8 +10,8 @@
 # SPDX-License-Identifier: MIT
 # License-Filename: LICENSE
 
-VERSION="0.1"
-BUILD="20220909"
+VERSION="0.2"
+BUILD="20221112"
 
 set -eu -o pipefail
 
@@ -149,6 +149,38 @@ if [ ! -x "$(which jq)" ]; then
     exit 1
 fi
 
+# convert env variables to options
+if [ "${OWNER_REPOS:-false}" == "true" ]; then
+    set -- --owner "$@"
+fi
+if [ "${COLLABORATOR_REPOS:-false}" == "true" ]; then
+    set -- --collaborator "$@"
+fi
+if [ "${MEMBER_REPOS:-false}" == "true" ]; then
+    set -- --member "$@"
+fi
+if [ -n "${REPOS_USERS:-}" ]; then
+    while IFS= read -r REPOS_USER; do
+        if [ -n "$REPOS_USER" ]; then
+            set -- --user "$REPOS_USER" "$@"
+        fi
+    done < <(printf '%s\n' "$REPOS_USERS")
+fi
+if [ -n "${REPOS_ORGS:-}" ]; then
+    while IFS= read -r REPOS_ORG; do
+        if [ -n "$REPOS_ORG" ]; then
+            set -- --org "$REPOS_ORG" "$@"
+        fi
+    done < <(printf '%s\n' "$REPOS_ORGS")
+fi
+if [ -n "${REPOS:-}" ]; then
+    while IFS= read -r REPO; do
+        if [ -n "$REPO" ]; then
+            set -- "$@" "$REPO"
+        fi
+    done < <(printf '%s\n' "$REPOS")
+fi
+
 # parse options
 REPOS=()
 DRY_RUN=
@@ -184,6 +216,12 @@ while [ $# -gt 0 ]; do
             echo
             echo "Environment variables:"
             echo "  GITHUB_TOKEN        uses the given GitHub personal access token"
+            echo "  OWNER_REPOS         passing 'true' enables '--owner'"
+            echo "  COLLABORATOR_REPOS  passing 'true' enables '--collaborator'"
+            echo "  MEMBER_REPOS        passing 'true' enables '--member'"
+            echo "  REPOS_USERS         line separated list of GitHub users for '--user'"
+            echo "  REPOS_ORGS          line separated list of GitHub organizations for '--org'"
+            echo "  REPOS               line separated list of 'REPOSITORY' arguments"
             echo
             echo "You want to learn more about \`gh-workflow-immortality\`? Visit us on GitHub!"
             echo "Please don't hesitate to ask your questions, or to report any issues found."

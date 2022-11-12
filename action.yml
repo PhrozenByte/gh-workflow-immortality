@@ -1,0 +1,49 @@
+name: GitHub Workflow Immortality
+description: Keeps cronjob based triggers of GitHub workflows alive.
+
+inputs:
+  secret:
+    description: Personal access token of the executing GitHub user
+    required: true
+  owner_repos:
+    description: Loads all repositories of the authenticated GitHub user (includes both public and private repositories)
+    required: false
+    default: false
+  collaborator_repos:
+    description: Loads all repositories of which the authenticated GitHub user is a collaborator of
+    required: false
+    default: false
+  member_repos:
+    description: Loads all repositories of organizations of which the authenticated GitHub user is a member of
+    required: false
+    default: false
+  users:
+    description: Loads all public repositories of the given GitHub users
+    required: false
+    default: ""
+  orgs:
+    description: Loads all repositories of the given GitHub organizations
+    required: false
+    default: ""
+  repos:
+    description: Loads the given repositories
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Run gh-workflow-immortality.sh
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.secret }}
+        OWNER_REPOS: ${{ inputs.owner_repos }}
+        COLLABORATOR_REPOS: ${{ inputs.collaborator_repos }}
+        MEMBER_REPOS: ${{ inputs.member_repos }}
+        REPOS_USERS: ${{ inputs.users }}
+        REPOS_ORGS: ${{ inputs.orgs }}
+        REPOS: ${{ inputs.repos }}
+      run: ${GITHUB_ACTION_PATH}/gh-workflow-immortality.sh
+
+branding:
+  icon: activity
