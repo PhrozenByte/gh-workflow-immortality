@@ -47,3 +47,4 @@ runs:
 
 branding:
   icon: activity
+  color: gray-dark
