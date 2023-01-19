@@ -51,6 +51,7 @@ gh_api() {
     local CURL_HEADERS=()
     CURL_HEADERS+=( -H "Accept: application/vnd.github+json" )
     [ -z "${GITHUB_TOKEN:-}" ] || CURL_HEADERS=( -H "Authorization: Bearer $GITHUB_TOKEN" )
+    CURL_HEADERS+=( -H "X-GitHub-Api-Version: 2022-11-28" )
 
     ENDPOINT="${ENDPOINT##/}"
 
