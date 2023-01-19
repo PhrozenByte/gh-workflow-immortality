@@ -3,7 +3,7 @@ GitHub Workflow Immortality
 
 This GitHub action resp. the [`gh-workflow-immortality.sh` script](gh-workflow-immortality.sh) makes scheduled GitHub workflows immortal by force enabling disabled workflows.
 
-GitHub will suspend scheduled triggers of GitHub workflows of repositories that didn't receive any activity within the past 60 days. The scheduled triggers no longer run and you'll see the following error:
+GitHub will suspend scheduled triggers of GitHub workflows of public repositories that didn't receive any activity within the past 60 days. The scheduled triggers no longer run and you'll see the following error:
 
 > This scheduled workflow is disabled because there hasn't been activity in this repository for at least 60 days.
 
@@ -47,7 +47,7 @@ jobs:
           repos: ${{ github.repository }}
 ```
 
-This example GitHub workflow will run once a month on the first day of the month at 00:20 UTC. It will keep all workflows of the containing GitHub repository alive. Running the workflow once a month is sufficient. Don't forget to [create a encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository) (the example expects a secret named `PERSONAL_ACCESS_TOKEN`) with the personal access token you've created earlier (see above).
+This example GitHub workflow will run once a month on the first day of the month at 00:20 UTC. It will keep all workflows of the containing GitHub repository alive. Running the workflow once a month is sufficient. Don't forget to [create an encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository) (the example expects a secret named `PERSONAL_ACCESS_TOKEN`) with the personal access token you've created earlier (see above).
 
 You can create an "immortality workflow" per repository, per user, per organization, or however you please, simply use the options below to specify the list of GitHub repositories whose workflows should be kept alive. Since your immortality workflow will use a scheduled trigger to run, you must make sure to include it in this list - otherwise GitHub might suspend it for inactivity.
 
