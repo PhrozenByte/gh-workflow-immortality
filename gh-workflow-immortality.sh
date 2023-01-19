@@ -10,8 +10,8 @@
 # SPDX-License-Identifier: MIT
 # License-Filename: LICENSE
 
-VERSION="0.2"
-BUILD="20221112"
+VERSION="1.0.0"
+BUILD="20230119"
 
 set -eu -o pipefail
 
