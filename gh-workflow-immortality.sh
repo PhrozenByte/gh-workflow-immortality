@@ -156,10 +156,12 @@ load_workflows() {
     gh_api "GET" "/repos/$1/actions/workflows" '.workflows'
     [ -n "$API_RESULT" ] || return 1
 
-    local __RESULT_ALIVE="$(jq -r --arg STATE "active" '.[]|select(.state == $STATE).path|split("/")|last' <<< "$API_RESULT")"
+    local __RESULT_ALIVE="$(jq -r --arg STATE "active" '.[]|select(.state == $STATE).path' <<< "$API_RESULT")"
+    __RESULT_ALIVE="$(sed -ne 's#^\.github/workflows/\(.*\)$#\1#p' <<< "$__RESULT_ALIVE")"
     [ -z "$__RESULT_ALIVE" ] || readarray -t WORKFLOWS_ALIVE <<< "$__RESULT_ALIVE"
 
-    local __RESULT_DEAD="$(jq -r --arg STATE "disabled_inactivity" '.[]|select(.state == $STATE).path|split("/")|last' <<< "$API_RESULT")"
+    local __RESULT_DEAD="$(jq -r --arg STATE "disabled_inactivity" '.[]|select(.state == $STATE).path' <<< "$API_RESULT")"
+    __RESULT_DEAD="$(sed -ne 's#^\.github/workflows/\(.*\)$#\1#p' <<< "$__RESULT_DEAD")"
     [ -z "$__RESULT_DEAD" ] || readarray -t WORKFLOWS_DEAD <<< "$__RESULT_DEAD"
 }
 
