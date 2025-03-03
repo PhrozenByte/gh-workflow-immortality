@@ -16,7 +16,9 @@ BUILD="20230119"
 set -eu -o pipefail
 
 APP_NAME="$(basename "${BASH_SOURCE[0]}")"
+EXIT_CODE=0
 
+# helper
 print_usage() {
     echo "Usage:"
     echo "  $APP_NAME [[--owner] [--collaborator] [--member]|--all] \\"
@@ -43,6 +45,9 @@ __curl() {
     return $RETURN_CODE
 }
 
+# GitHub API helper
+declare API_RESULT=
+
 gh_api() {
     local METHOD="${1:-GET}"
     local ENDPOINT="${2:-/}"
@@ -54,6 +59,9 @@ gh_api() {
     CURL_HEADERS+=( -H "X-GitHub-Api-Version: 2022-11-28" )
 
     ENDPOINT="${ENDPOINT##/}"
+
+    # reset API result
+    API_RESULT=
 
     # send HTTP request
     local RESPONSE HEADERS RESULT
@@ -90,53 +98,44 @@ gh_api() {
         done
     fi
 
-    # print result
-    [ -z "$RESULT" ] || echo "$RESULT"
+    # return result
+    API_RESULT="$RESULT"
 }
 
-gh_api_repo() {
-    local REPO="$1"
+# GitHub repo loaders
+declare -a REPOS=()
 
-    local JSON RETURN_CODE
-    JSON="$(gh_api "GET" "/repos/$REPO")"
-    RETURN_CODE=$?
+load_repo() {
+    gh_api "GET" "/repos/$1"
+    [ -n "$API_RESULT" ] || return 1
 
-    if [ $RETURN_CODE -eq 0 ] && [ -n "$JSON" ]; then
-        jq -r '.full_name' <<< "$JSON"
-    fi
-
-    return $RETURN_CODE
+    REPOS+=( "$(jq -r '.full_name' <<< "$API_RESULT")" )
 }
 
-gh_api_repos() {
-    local JSON RETURN_CODE
-    JSON="$(gh_api "GET" "$@")"
-    RETURN_CODE=$?
+load_repos() {
+    gh_api "GET" "$@"
+    [ -n "$API_RESULT" ] || return 1
 
-    if [ $RETURN_CODE -eq 0 ] && [ -n "$JSON" ]; then
-        jq -r '.[]|select((.fork or .archived or .disabled)|not).full_name' <<< "$JSON"
-    fi
-
-    return $RETURN_CODE
+    local __RESULT="$(jq -r '.[]|select((.fork or .archived or .disabled)|not).full_name' <<< "$API_RESULT")"
+    [ -z "$__RESULT" ] || readarray -t -O "${#REPOS[@]}" REPOS <<< "$__RESULT"
 }
 
-gh_api_workflows() {
-    local REPO="$1"
-    local STATE="${2:-}"
+# GitHub workflow loaders
+declare -a WORKFLOWS_ALIVE=()
+declare -a WORKFLOWS_DEAD=()
 
-    local JSON RETURN_CODE
-    JSON="$(gh_api "GET" "/repos/$REPO/actions/workflows" '.workflows')"
-    RETURN_CODE=$?
+load_workflows() {
+    WORKFLOWS_ALIVE=()
+    WORKFLOWS_DEAD=()
 
-    if [ $RETURN_CODE -eq 0 ] && [ -n "$JSON" ]; then
-        if [ -n "$STATE" ]; then
-            jq -r --arg STATE "$STATE" '.[]|select(.state == $STATE).path|split("/")|last' <<< "$JSON"
-        else
-            jq -r '.[].path|split("/")|last' <<< "$JSON"
-        fi
-    fi
+    gh_api "GET" "/repos/$1/actions/workflows" '.workflows'
+    [ -n "$API_RESULT" ] || return 1
 
-    return $RETURN_CODE
+    local __RESULT_ALIVE="$(jq -r --arg STATE "active" '.[]|select(.state == $STATE).path|split("/")|last' <<< "$API_RESULT")"
+    [ -z "$__RESULT_ALIVE" ] || readarray -t WORKFLOWS_ALIVE <<< "$__RESULT_ALIVE"
+
+    local __RESULT_DEAD="$(jq -r --arg STATE "disabled_inactivity" '.[]|select(.state == $STATE).path|split("/")|last' <<< "$API_RESULT")"
+    [ -z "$__RESULT_DEAD" ] || readarray -t WORKFLOWS_DEAD <<< "$__RESULT_DEAD"
 }
 
 # check dependencies
@@ -183,9 +182,11 @@ if [ -n "${REPOS:-}" ]; then
 fi
 
 # parse options
-REPOS=()
+GH_AFFILIATIONS=()
+GH_USERS=()
+GH_ORGS=()
+GH_REPOS=()
 DRY_RUN=
-EXIT_CODE=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -249,21 +250,12 @@ while [ $# -gt 0 ]; do
 
         "--all"|"--owner"|"--collaborator"|"--member")
             case "$1" in
-                "--all")          AFFILIATION="owner,collaborator,organization_member" ;;
-                "--owner")        AFFILIATION="owner" ;;
-                "--collaborator") AFFILIATION="collaborator" ;;
-                "--member")       AFFILIATION="organization_member" ;;
+                "--all")          GH_AFFILIATIONS+=( "owner,collaborator,organization_member" ) ;;
+                "--owner")        GH_AFFILIATIONS+=( "owner" ) ;;
+                "--collaborator") GH_AFFILIATIONS+=( "collaborator" ) ;;
+                "--member")       GH_AFFILIATIONS+=( "organization_member" ) ;;
             esac
             shift
-
-            # load repos of authenticated user
-            GH_USER_REPOS="$(gh_api_repos "/user/repos?affiliation=$AFFILIATION")"
-            if [ -z "$GH_USER_REPOS" ]; then
-                echo "Failed to load GitHub repositories of authenticated user" >&2
-                exit 1
-            fi
-
-            readarray -t -O "${#REPOS[@]}" REPOS <<< "$GH_USER_REPOS"
             ;;
 
         "--user")
@@ -272,17 +264,8 @@ while [ $# -gt 0 ]; do
                 exit 1
             fi
 
-            GH_USER="$2"
+            GH_USERS+=( "$2" )
             shift 2
-
-            # load public (!) repos of given user
-            GH_USER_REPOS="$(gh_api_repos "/users/$GH_USER/repos" || { EXIT_CODE=1; true; })"
-            if [ -z "$GH_USER_REPOS" ]; then
-                echo "Failed to load public GitHub repositories of user: $GH_USER" >&2
-                exit 1
-            fi
-
-            readarray -t -O "${#REPOS[@]}" REPOS <<< "$GH_USER_REPOS"
             ;;
 
         "--org")
@@ -291,17 +274,8 @@ while [ $# -gt 0 ]; do
                 exit 1
             fi
 
-            GH_ORG="$2"
+            GH_ORGS+=( "$2" )
             shift 2
-
-            # load repos of given organization
-            GH_ORG_REPOS="$(gh_api_repos "/orgs/$GH_ORG/repos" || { EXIT_CODE=1; true; })"
-            if [ -z "$GH_ORG_REPOS" ]; then
-                echo "Failed to load GitHub repositories of organization: $GH_ORG" >&2
-                exit 1
-            fi
-
-            readarray -t -O "${#REPOS[@]}" REPOS <<< "$GH_ORG_REPOS"
             ;;
 
         *)
@@ -310,26 +284,45 @@ while [ $# -gt 0 ]; do
                 exit 1
             fi
 
-            GH_REPO="$1"
+            GH_REPOS+=( "$1" )
             shift
-
-            # load given repo (primarily to check whether the repo exists)
-            GH_REPO_FULL="$(gh_api_repo "$GH_REPO" || { EXIT_CODE=1; true; })"
-            if [ -z "$GH_REPO_FULL" ]; then
-                echo "Failed to load GitHub repository: $GH_REPO" >&2
-                exit 1
-            fi
-
-            REPOS+=( "$GH_REPO_FULL" )
             ;;
     esac
 done
 
+# load repos
+for GH_AFFILIATION in "${GH_AFFILIATIONS[@]}"; do
+    echo "Loading GitHub repositories of authenticated user..."
+    load_repos "/user/repos?affiliation=$GH_AFFILIATION" \
+        || { EXIT_CODE=1; true; }
+done
+
+for GH_USER in "${GH_USERS[@]}"; do
+    echo "Loading public GitHub repositories of user '$GH_USER'..."
+    load_repos "/users/$GH_USER/repos" \
+        || { EXIT_CODE=1; true; }
+done
+
+for GH_ORG in "${GH_ORGS[@]}"; do
+    echo "Loading GitHub repositories of organization '$GH_ORG'..."
+    load_repos "/orgs/$GH_ORG/repos" \
+        || { EXIT_CODE=1; true; }
+done
+
+for GH_REPO in "${GH_REPOS[@]}"; do
+    echo "Loading GitHub repository '$GH_REPO'..."
+    load_repo "$GH_REPO" \
+        || { EXIT_CODE=1; true; }
+done
+
 # nothing to do
 if [ ${#REPOS[@]} -eq 0 ]; then
-    print_usage >&2
+    echo "No GitHub repositories found" >&2
     exit 1
 fi
+
+# remove duplicate repositories
+readarray -t REPOS < <(printf '%s\n' "${REPOS[@]}" | sort -u)
 
 # enable all workflows of the requested repos
 if [ -n "$DRY_RUN" ]; then
@@ -337,8 +330,8 @@ if [ -n "$DRY_RUN" ]; then
 fi
 
 for REPO in "${REPOS[@]}"; do
-    readarray -t WORKFLOWS_ALIVE < <(gh_api_workflows "$REPO" "active")
-    readarray -t WORKFLOWS_DEAD < <(gh_api_workflows "$REPO" "disabled_inactivity")
+    load_workflows "$REPO" \
+        || { EXIT_CODE=1; true; }
 
     echo "GitHub repository '$REPO': ${#WORKFLOWS_ALIVE[@]} alive and ${#WORKFLOWS_DEAD[@]} dead workflows"
 
@@ -347,7 +340,8 @@ for REPO in "${REPOS[@]}"; do
         echo "- Enabling still active workflow: $WORKFLOW"
 
         if [ -z "$DRY_RUN" ]; then
-            gh_api "PUT" "/repos/$REPO/actions/workflows/$WORKFLOW/enable" || { EXIT_CODE=1; true; }
+            gh_api "PUT" "/repos/$REPO/actions/workflows/$WORKFLOW/enable" \
+                || { EXIT_CODE=1; true; }
         fi
     done
 
@@ -356,7 +350,8 @@ for REPO in "${REPOS[@]}"; do
         echo "- Enabling dead workflow: $WORKFLOW"
 
         if [ -z "$DRY_RUN" ]; then
-            gh_api "PUT" "/repos/$REPO/actions/workflows/$WORKFLOW/enable" || { EXIT_CODE=1; true; }
+            gh_api "PUT" "/repos/$REPO/actions/workflows/$WORKFLOW/enable" \
+                || { EXIT_CODE=1; true; }
         fi
     done
 done
