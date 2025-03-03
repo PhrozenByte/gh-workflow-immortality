@@ -21,7 +21,7 @@ EXIT_CODE=0
 # helper
 print_usage() {
     echo "Usage:"
-    echo "  $APP_NAME [[--owner] [--collaborator] [--member]|--all] \\"
+    echo "  $APP_NAME [--forks] [[--owner] [--collaborator] [--member]|--all] \\"
     echo "    [--user USER]... [--org ORGANIZATION]... [REPOSITORY]..."
 }
 
@@ -135,7 +135,13 @@ load_repos() {
     gh_api "GET" "$@"
     [ -n "$API_RESULT" ] || return 1
 
-    local __RESULT="$(jq -r '.[]|select((.fork or .archived or .disabled)|not).full_name' <<< "$API_RESULT")"
+    local __RESULT
+    if [ -z "$FORKS" ]; then
+        __RESULT="$(jq -r '.[]|select((.fork or .archived or .disabled)|not).full_name' <<< "$API_RESULT")"
+    else
+        __RESULT="$(jq -r '.[]|select((.archived or .disabled)|not).full_name' <<< "$API_RESULT")"
+    fi
+
     [ -z "$__RESULT" ] || readarray -t -O "${#REPOS[@]}" REPOS <<< "$__RESULT"
 }
 
@@ -169,6 +175,9 @@ if [ ! -x "$(which jq)" ]; then
 fi
 
 # convert env variables to options
+if [ "${INCLUDE_FORKS:-false}" == "true" ]; then
+    set -- --forks "$@"
+fi
 if [ "${OWNER_REPOS:-false}" == "true" ]; then
     set -- --owner "$@"
 fi
@@ -201,6 +210,7 @@ if [ -n "${REPOS:-}" ]; then
 fi
 
 # parse options
+FORKS=
 GH_AFFILIATIONS=()
 GH_USERS=()
 GH_ORGS=()
@@ -220,6 +230,7 @@ while [ $# -gt 0 ]; do
             echo "the workflow's inactivity counter is reset."
             echo
             echo "Repository options:"
+            echo "  --forks             also loads forked repositories (otherwise excluded)"
             echo "  --owner             loads all repositories of the authenticated GitHub user"
             echo "                        (includes both public and private repositories)"
             echo "  --collaborator      loads all repositories of which the authenticated GitHub"
@@ -239,6 +250,7 @@ while [ $# -gt 0 ]; do
             echo
             echo "Environment variables:"
             echo "  GITHUB_TOKEN        uses the given GitHub personal access token"
+            echo "  INCLUDE_FORKS       passing 'true' enables '--forks'"
             echo "  OWNER_REPOS         passing 'true' enables '--owner'"
             echo "  COLLABORATOR_REPOS  passing 'true' enables '--collaborator'"
             echo "  MEMBER_REPOS        passing 'true' enables '--member'"
@@ -271,6 +283,11 @@ while [ $# -gt 0 ]; do
 
         "--verbose")
             VERBOSE="y"
+            shift
+            ;;
+
+        "--forks")
+            FORKS="y"
             shift
             ;;
 

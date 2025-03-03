@@ -17,7 +17,7 @@ You can either run the `gh-workflow-immortality.sh` script manually, or use the 
 
 You can use both fine-grained personal access tokens, and classic personal access tokens. If you choose to use classic personal access tokens, you must enable the "workflow" scope, which also implies the very potent "repo" scope. Thus it's better to use fine-grained personal access tokens when possible: The only repository permission required is the "Actions" permission with both read and write access. You can even limit the fine-grained personal access token to the repositories you really need. Please note that with fine-grained personal access tokens you can't access repositories owned by GitHub organizations or other GitHub users. Don't forget to choose a suitable expiration date and to renew your personal access tokens accordingly.
 
-Please note that `gh-workflow-immortality.sh` intentionally excludes forked, archived, and disabled repositories. Even though forked repositories can indeed use scheduled triggers for GitHub workflows, we expect them not to require immortality. If you require the GitHub workflows of a forked repository to be immortal, specify it using the `repos` options (when using the GitHub action) resp. pass it as command line argument (when running the script manually). This won't work for archived and disabled repositories though, because these can't have active GitHub workflows.
+Please note that `gh-workflow-immortality.sh` intentionally excludes forked, archived, and disabled repositories. Even though forked repositories can indeed use scheduled triggers for GitHub workflows, we expect them not to require immortality and are thus excluded by default. If you require the GitHub workflows of a forked repository to be immortal, either specify it using the `repos` options (when using the GitHub action) resp. pass it as command line argument (when running the script manually), or enable the `include_forks` option (when using the GitHub action) resp. pass the `--forks` command line option (when running the script manually). This won't work for archived and disabled repositories though, because they can't have active GitHub workflows.
 
 `gh-workflow-immortality.sh` will respect GitHub's [REST API rate limiting](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api?apiVersion=2022-11-28). If the limit was reached, the script will bail and tell you when to try again. Since it's practically impossible to pass the limit just with `gh-workflow-immortality.sh`, you should consider running the script at a time with fewer requests from your other applications using the GitHub API. If this isn't possibly, consider running the script multiple times at different times with a subset of repos.
 
@@ -58,6 +58,7 @@ The GitHub action will accept the following options:
 | Option               | Description                                                                                                                       | Default | Required |
 |----------------------|-----------------------------------------------------------------------------------------------------------------------------------|---------|----------|
 | `secret`             | Personal access token of the executing GitHub user (see above)                                                                    | None    | Yes      |
+| `include_forks`      | Also includes forks when loading repositories; either `true` or `false`                                                           | `false` | No       |
 | `owner_repos`        | Loads all repositories of the authenticated GitHub user (includes both public and private repositories); either `true` or `false` | `false` | No       |
 | `collaborator_repos` | Loads all repositories of which the authenticated GitHub user is a collaborator of; either `true` or `false`                      | `false` | No       |
 | `member_repos`       | Loads all repositories of organizations of which the authenticated GitHub user is a member of; either `true` or `false`           | `false` | No       |
@@ -74,7 +75,7 @@ The GitHub action is no more than a wrapper for the `gh-workflow-immortality.sh`
 ```console
 $ ./gh-workflow-immortality.sh --help
 Usage:
-  gh-workflow-immortality.sh [[--owner] [--collaborator] [--member]|--all] \
+  gh-workflow-immortality.sh [--forks] [[--owner] [--collaborator] [--member]|--all] \
     [--user USER]... [--org ORGANIZATION]... [REPOSITORY]...
 
 Makes scheduled GitHub workflows immortal by force enabling disabled workflows.
@@ -84,6 +85,7 @@ iterates all your GitHub repositories and force enables your workflows, so that
 the workflow's inactivity counter is reset.
 
 Repository options:
+  --forks             also loads forked repositories (otherwise excluded)
   --owner             loads all repositories of the authenticated GitHub user
                         (includes both public and private repositories)
   --collaborator      loads all repositories of which the authenticated GitHub
@@ -103,6 +105,7 @@ Application options:
 
 Environment variables:
   GITHUB_TOKEN        uses the given GitHub personal access token
+  INCLUDE_FORKS       passing 'true' enables '--forks'
   OWNER_REPOS         passing 'true' enables '--owner'
   COLLABORATOR_REPOS  passing 'true' enables '--collaborator'
   MEMBER_REPOS        passing 'true' enables '--member'

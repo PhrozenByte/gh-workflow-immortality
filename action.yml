@@ -5,6 +5,10 @@ inputs:
   secret:
     description: Personal access token of the executing GitHub user
     required: true
+  include_forks:
+    description: Also includes forks when loading repositories
+    required: false
+    default: false
   owner_repos:
     description: Loads all repositories of the authenticated GitHub user (includes both public and private repositories)
     required: false
@@ -40,6 +44,7 @@ runs:
         OWNER_REPOS: ${{ inputs.owner_repos }}
         COLLABORATOR_REPOS: ${{ inputs.collaborator_repos }}
         MEMBER_REPOS: ${{ inputs.member_repos }}
+        INCLUDE_FORKS: ${{ inputs.include_forks }}
         REPOS_USERS: ${{ inputs.users }}
         REPOS_ORGS: ${{ inputs.orgs }}
         REPOS: ${{ inputs.repos }}
