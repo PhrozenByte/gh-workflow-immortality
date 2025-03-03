@@ -14,6 +14,7 @@ VERSION="1.0.0"
 BUILD="20230119"
 
 set -eu -o pipefail
+export LC_ALL=C
 
 APP_NAME="$(basename "${BASH_SOURCE[0]}")"
 EXIT_CODE=0
@@ -166,6 +167,11 @@ load_workflows() {
 }
 
 # check dependencies
+if [ ! -x "$(which sed)" ]; then
+    echo "Missing required script dependency: sed" >&2
+    exit 1
+fi
+
 if [ ! -x "$(which curl)" ]; then
     echo "Missing required script dependency: curl" >&2
     exit 1
@@ -225,11 +231,11 @@ while [ $# -gt 0 ]; do
         "--help")
             print_usage
             echo
-            echo "Makes scheduled GitHub workflows immortal by force enabling disabled workflows."
-            echo "GitHub will suspend scheduled triggers of GitHub workflows of repositories that"
-            echo "didn't receive any activity within the past 60 days. This small script simply"
-            echo "iterates all your GitHub repositories and force enables your workflows, so that"
-            echo "the workflow's inactivity counter is reset."
+            echo "Makes scheduled GitHub workflows immortal by force enabling workflows. GitHub"
+            echo "will suspend scheduled triggers of GitHub workflows of repositories that didn't"
+            echo "receive any activity within the past 60 days. This small script simply iterates"
+            echo "all your GitHub repositories and force enables your workflows, so that the"
+            echo "workflow's inactivity counter is reset."
             echo
             echo "Repository options:"
             echo "  --forks             also loads forked repositories (otherwise excluded)"
@@ -262,7 +268,7 @@ while [ $# -gt 0 ]; do
             echo
             echo "You want to learn more about \`gh-workflow-immortality\`? Visit us on GitHub!"
             echo "Please don't hesitate to ask your questions, or to report any issues found."
-            echo "Visit us at <https://github.com/PhrozenByte/gh-workflow-immortality>."
+            echo "Check out <https://github.com/PhrozenByte/gh-workflow-immortality>."
             exit 0
             ;;
 

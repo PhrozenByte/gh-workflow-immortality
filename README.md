@@ -1,13 +1,15 @@
 GitHub Workflow Immortality
 ===========================
 
-This GitHub action resp. the [`gh-workflow-immortality.sh` script](gh-workflow-immortality.sh) makes scheduled GitHub workflows immortal by force enabling disabled workflows.
+This GitHub action resp. the [`gh-workflow-immortality.sh` script](gh-workflow-immortality.sh) makes scheduled GitHub workflows immortal by force enabling workflows.
 
 GitHub will suspend scheduled triggers of GitHub workflows of public repositories that didn't receive any activity within the past 60 days. The scheduled triggers no longer run and you'll see the following error:
 
 > This scheduled workflow is disabled because there hasn't been activity in this repository for at least 60 days.
 
-The `gh-workflow-immortality.sh` script simply iterates all your GitHub repositories and force enables your workflows, so that the workflow's inactivity counter is reset. Your scheduled triggers will run indefinitely and your workflows won't ever get suspended by GitHub for inactivity (they are "immortal").
+The `gh-workflow-immortality.sh` script simply iterates all your GitHub repositories and force enables your workflows, so that the workflow's inactivity counter is reset. Your scheduled triggers will run indefinitely and your workflows won't ever get suspended by GitHub for inactivity (they are "immortal"). The script will re-enable workflows that were previously disabled due to inactivity, but not workflows that were disabled manually.
+
+The script was written to run with [GNU Bash](https://www.gnu.org/software/bash/). It requires the [`sed`](https://sed.sourceforge.io/), [`curl`](https://curl.se/), and [`jq`](https://jqlang.github.io/jq/) command line tools to be installed.
 
 Made with :heart: by [Daniel Rudolf](https://www.daniel-rudolf.de/) ([@PhrozenByte](https://github.com/PhrozenByte)). GitHub Workflow Immortality is free and open source software, released under the terms of the [MIT license](LICENSE).
 
@@ -15,7 +17,7 @@ Made with :heart: by [Daniel Rudolf](https://www.daniel-rudolf.de/) ([@PhrozenBy
 
 You can either run the `gh-workflow-immortality.sh` script manually, or use the GitHub action. No matter what, you must [create a personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token). This is also true when using the GitHub action, because GitHub's automatically created `GITHUB_TOKEN` secret lacks the required permissions.
 
-You can use both fine-grained personal access tokens, and classic personal access tokens. If you choose to use classic personal access tokens, you must enable the "workflow" scope, which also implies the very potent "repo" scope. Thus it's better to use fine-grained personal access tokens when possible: The only repository permission required is the "Actions" permission with both read and write access. You can even limit the fine-grained personal access token to the repositories you really need. Please note that with fine-grained personal access tokens you can't access repositories owned by GitHub organizations or other GitHub users. Don't forget to choose a suitable expiration date and to renew your personal access tokens accordingly.
+You can use both fine-grained personal access tokens, and classic personal access tokens. If you choose to use classic personal access tokens, you must enable the "workflow" scope, which also implies the very potent "repo" scope. Thus it's better to use fine-grained personal access tokens when possible: The only repository permission required is the "Actions" permission with both read and write access. You can even limit the fine-grained personal access token to the repositories you really need. Please note that with fine-grained personal access tokens you need a token per GitHub user and GitHub organization. Don't forget to choose a suitable expiration date and to renew your personal access tokens accordingly.
 
 Please note that `gh-workflow-immortality.sh` intentionally excludes forked, archived, and disabled repositories. Even though forked repositories can indeed use scheduled triggers for GitHub workflows, we expect them not to require immortality and are thus excluded by default. If you require the GitHub workflows of a forked repository to be immortal, either specify it using the `repos` options (when using the GitHub action) resp. pass it as command line argument (when running the script manually), or enable the `include_forks` option (when using the GitHub action) resp. pass the `--forks` command line option (when running the script manually). This won't work for archived and disabled repositories though, because they can't have active GitHub workflows. Please also note that `gh-workflow-immortality.sh` will exclude dynamic workflows without a YAML config file in the repo's `.github/workflows/` directory (e.g. the default GitHub Pages workflow), because they don't use scheduled triggers.
 
@@ -51,7 +53,7 @@ jobs:
 
 This example GitHub workflow will run once a month on the first day of the month at 00:20 UTC. It will keep all workflows of the containing GitHub repository alive. Running the workflow once a month is sufficient. Don't forget to [create an encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository) (the example expects a secret named `PERSONAL_ACCESS_TOKEN`) with the personal access token you've created earlier (see above).
 
-You can create an "immortality workflow" per repository, per user, per organization, or however you please, simply use the options below to specify the list of GitHub repositories whose workflows should be kept alive. Since your immortality workflow will use a scheduled trigger to run, you must make sure to include it in this list - otherwise GitHub might suspend it for inactivity.
+You can create an "immortality workflow" per repository, per user, per organization, or however you please, simply use the options below to specify the list of GitHub repositories whose workflows should be kept alive. Since your immortality workflow will use a scheduled trigger to run, you must make sure to include it in this list - otherwise GitHub might suspend it for inactivity. You can use the `${{ github.repository }}` variable to get the name of the repository including the immortality workflow.
 
 The GitHub action will accept the following options:
 
@@ -78,11 +80,11 @@ Usage:
   gh-workflow-immortality.sh [--forks] [[--owner] [--collaborator] [--member]|--all] \
     [--user USER]... [--org ORGANIZATION]... [REPOSITORY]...
 
-Makes scheduled GitHub workflows immortal by force enabling disabled workflows.
-GitHub will suspend scheduled triggers of GitHub workflows of repositories that
-didn't receive any activity within the past 60 days. This small script simply
-iterates all your GitHub repositories and force enables your workflows, so that
-the workflow's inactivity counter is reset.
+Makes scheduled GitHub workflows immortal by force enabling workflows. GitHub
+will suspend scheduled triggers of GitHub workflows of repositories that didn't
+receive any activity within the past 60 days. This small script simply iterates
+all your GitHub repositories and force enables your workflows, so that the
+workflow's inactivity counter is reset.
 
 Repository options:
   --forks             also loads forked repositories (otherwise excluded)
@@ -121,6 +123,7 @@ Visit us at <https://github.com/PhrozenByte/gh-workflow-immortality>.
 For the script to work you must set the `GITHUB_TOKEN` environment variable - otherwise you'll see "Bad credentials" errors. Create a personal access token as described above and pass it as `GITHUB_TOKEN` environment variable. To keep all workflows of all of your own GitHub repositories alive, try the following:
 
 ```console
-$ GITHUB_TOKEN=my_personal_access_token ./gh-workflow-immortality.sh --owner
+$ export GITHUB_TOKEN=my_personal_access_token
+$ ./gh-workflow-immortality.sh --owner
 GitHub repository 'PhrozenByte/gh-workflow-immortality': 0 alive and 0 dead workflows
 ```
