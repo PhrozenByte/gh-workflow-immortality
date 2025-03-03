@@ -95,6 +95,7 @@ Repository options:
 
 Application options:
   --dry-run           don't actually enable any workflows
+  --verbose           print a list of issued GitHub API requests
   --help              display this help and exit
   --version           output version information and exit
 

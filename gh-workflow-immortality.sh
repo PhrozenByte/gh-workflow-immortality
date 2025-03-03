@@ -63,6 +63,11 @@ gh_api() {
     # reset API result
     API_RESULT=
 
+    # print API call in verbose mode
+    if [ "$VERBOSE" == "y" ]; then
+        echo + "$METHOD https://api.github.com/$ENDPOINT" >&2
+    fi
+
     # send HTTP request
     local RESPONSE HEADERS RESULT
 
@@ -85,6 +90,10 @@ gh_api() {
 
         for (( PAGE=2 ; PAGE <= PAGE_COUNT ; PAGE++ )); do
             # send HTTP request for nth page
+            if [ "$VERBOSE" == "y" ]; then
+                echo + "$METHOD https://api.github.com/$ENDPOINT$PAGE_PARAM$PAGE" >&2
+            fi
+
             PAGE_RESULT="$(__curl "${CURL_HEADERS[@]}" -X "$METHOD" \
                 "https://api.github.com/$ENDPOINT$PAGE_PARAM$PAGE")"
             [ $? -eq 0 ] || return 1
@@ -187,6 +196,7 @@ GH_USERS=()
 GH_ORGS=()
 GH_REPOS=()
 DRY_RUN=
+VERBOSE=
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -213,6 +223,7 @@ while [ $# -gt 0 ]; do
             echo
             echo "Application options:"
             echo "  --dry-run           don't actually enable any workflows"
+            echo "  --verbose           print a list of issued GitHub API requests"
             echo "  --help              display this help and exit"
             echo "  --version           output version information and exit"
             echo
@@ -245,6 +256,11 @@ while [ $# -gt 0 ]; do
 
         "--dry-run")
             DRY_RUN="y"
+            shift
+            ;;
+
+        "--verbose")
+            VERBOSE="y"
             shift
             ;;
 
