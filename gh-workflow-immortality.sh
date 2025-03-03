@@ -2,7 +2,7 @@
 # gh-workflow-immortality.sh
 # Keeps cronjob based triggers of GitHub workflows alive.
 #
-# Copyright (C) 2022  Daniel Rudolf <www.daniel-rudolf.de>
+# Copyright (C) 2022-2025  Daniel Rudolf <www.daniel-rudolf.de>
 #
 # This work is licensed under the terms of the MIT license.
 # For a copy, see LICENSE file or <https://opensource.org/licenses/MIT>.
@@ -10,8 +10,8 @@
 # SPDX-License-Identifier: MIT
 # License-Filename: LICENSE
 
-VERSION="1.0.0"
-BUILD="20230119"
+VERSION="1.1.0"
+BUILD="20250303"
 
 set -eu -o pipefail
 export LC_ALL=C
@@ -275,7 +275,7 @@ while [ $# -gt 0 ]; do
         "--version")
             echo "gh-workflow-immortality.sh $VERSION (build $BUILD)"
             echo
-            echo "Copyright (C) 2022  Daniel Rudolf"
+            echo "Copyright (C) 2022-2025  Daniel Rudolf"
             echo "This work is licensed under the terms of the MIT license."
             echo "For a copy, see LICENSE file or <https://opensource.org/licenses/MIT>."
             echo
