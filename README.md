@@ -19,6 +19,8 @@ You can use both fine-grained personal access tokens, and classic personal acces
 
 Please note that `gh-workflow-immortality.sh` intentionally excludes forked, archived, and disabled repositories. Even though forked repositories can indeed use scheduled triggers for GitHub workflows, we expect them not to require immortality. If you require the GitHub workflows of a forked repository to be immortal, specify it using the `repos` options (when using the GitHub action) resp. pass it as command line argument (when running the script manually). This won't work for archived and disabled repositories though, because these can't have active GitHub workflows.
 
+`gh-workflow-immortality.sh` will respect GitHub's [REST API rate limiting](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api?apiVersion=2022-11-28). If the limit was reached, the script will bail and tell you when to try again. Since it's practically impossible to pass the limit just with `gh-workflow-immortality.sh`, you should consider running the script at a time with fewer requests from your other applications using the GitHub API. If this isn't possibly, consider running the script multiple times at different times with a subset of repos.
+
 ### Using the GitHub action
 
 Simply create a new GitHub workflow like the following and incorporate this GitHub action as its only step:

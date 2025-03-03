@@ -68,6 +68,16 @@ gh_api() {
         echo + "$METHOD https://api.github.com/$ENDPOINT" >&2
     fi
 
+    # check rate limit
+    if [ "$ENDPOINT" != "rate_limit" ]; then
+        if (( $RATELIMIT_REMAINING == 0 )); then
+            echo "curl: (67) GitHub API rate limit exceeded: You must wait till $RATELIMIT_RESET" >&2
+            return 67
+        fi
+
+        ((RATELIMIT_REMAINING--))
+    fi
+
     # send HTTP request
     local RESPONSE HEADERS RESULT
 
@@ -305,6 +315,16 @@ while [ $# -gt 0 ]; do
             ;;
     esac
 done
+
+# check current rate limit
+gh_api "GET" "/rate_limit" '.resources.core'
+RATELIMIT_REMAINING="$(jq -r '.remaining' <<< "$API_RESULT")"
+RATELIMIT_RESET="$(date -d "@$(jq -r '.reset' <<< "$API_RESULT")" +'%Y-%m-%d %H:%M:%S %Z')"
+
+if (( $RATELIMIT_REMAINING == 0 )); then
+    echo "GitHub API rate limit exceeded: You must wait till $RATELIMIT_RESET" >&2
+    exit 1
+fi
 
 # load repos
 for GH_AFFILIATION in "${GH_AFFILIATIONS[@]}"; do
