@@ -10,8 +10,8 @@
 # SPDX-License-Identifier: MIT
 # License-Filename: LICENSE
 
-VERSION="1.1.0"
-BUILD="20250303"
+VERSION="1.1.1"
+BUILD="20250304"
 
 set -eu -o pipefail
 export LC_ALL=C
