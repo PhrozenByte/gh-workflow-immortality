@@ -19,7 +19,7 @@ export LC_ALL=C
 APP_NAME="$(basename "${BASH_SOURCE[0]}")"
 EXIT_CODE=0
 
-# check dependencies
+# check script dependencies
 if [ ! -x "$(which sed)" ]; then
     echo "Missing required script dependency: sed" >&2
     exit 1
@@ -70,7 +70,7 @@ if [ -n "${REPOS:-}" ]; then
     done < <(printf '%s\n' "$REPOS")
 fi
 
-# helper
+# helper functions
 print_usage() {
     echo "Usage:"
     echo "  $APP_NAME [--forks] [[--owner] [--collaborator] [--member]|--all] \\"
@@ -97,7 +97,7 @@ __curl() {
     return $RETURN_CODE
 }
 
-# GitHub API helper
+# GitHub API helper function
 declare API_RESULT=
 
 gh_api() {
@@ -173,7 +173,7 @@ gh_api() {
     API_RESULT="$RESULT"
 }
 
-# GitHub repo loaders
+# GitHub repo loader functions
 declare -a REPOS=()
 
 load_repo() {
@@ -197,7 +197,7 @@ load_repos() {
     [ -z "$__RESULT" ] || readarray -t -O "${#REPOS[@]}" REPOS <<< "$__RESULT"
 }
 
-# GitHub workflow loaders
+# GitHub workflow loader functions
 declare -a WORKFLOWS_ALIVE=()
 declare -a WORKFLOWS_DEAD=()
 
@@ -217,7 +217,7 @@ load_workflows() {
     [ -z "$__RESULT_DEAD" ] || readarray -t WORKFLOWS_DEAD <<< "$__RESULT_DEAD"
 }
 
-# parse options
+# parse script options
 FORKS=
 GH_AFFILIATIONS=()
 GH_USERS=()
@@ -341,7 +341,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-# check current rate limit
+# check current GitHub API rate limit
 gh_api "GET" "/rate_limit" '.resources.core'
 RATELIMIT_REMAINING="$(jq -r '.remaining' <<< "$API_RESULT")"
 RATELIMIT_RESET="$(date -d "@$(jq -r '.reset' <<< "$API_RESULT")" +'%Y-%m-%d %H:%M:%S %Z')"

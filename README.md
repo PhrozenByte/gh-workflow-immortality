@@ -117,7 +117,7 @@ Environment variables:
 
 You want to learn more about `gh-workflow-immortality`? Visit us on GitHub!
 Please don't hesitate to ask your questions, or to report any issues found.
-Visit us at <https://github.com/PhrozenByte/gh-workflow-immortality>.
+Check out <https://github.com/PhrozenByte/gh-workflow-immortality>.
 ```
 
 For the script to work you must set the `GITHUB_TOKEN` environment variable - otherwise you'll see "Bad credentials" errors. Create a personal access token as described above and pass it as `GITHUB_TOKEN` environment variable. To keep all workflows of all of your own GitHub repositories alive, try the following:
