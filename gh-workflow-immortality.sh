@@ -19,6 +19,57 @@ export LC_ALL=C
 APP_NAME="$(basename "${BASH_SOURCE[0]}")"
 EXIT_CODE=0
 
+# check dependencies
+if [ ! -x "$(which sed)" ]; then
+    echo "Missing required script dependency: sed" >&2
+    exit 1
+fi
+
+if [ ! -x "$(which curl)" ]; then
+    echo "Missing required script dependency: curl" >&2
+    exit 1
+fi
+
+if [ ! -x "$(which jq)" ]; then
+    echo "Missing required script dependency: jq" >&2
+    exit 1
+fi
+
+# convert env variables to options
+if [ "${INCLUDE_FORKS:-false}" == "true" ]; then
+    set -- --forks "$@"
+fi
+if [ "${OWNER_REPOS:-false}" == "true" ]; then
+    set -- --owner "$@"
+fi
+if [ "${COLLABORATOR_REPOS:-false}" == "true" ]; then
+    set -- --collaborator "$@"
+fi
+if [ "${MEMBER_REPOS:-false}" == "true" ]; then
+    set -- --member "$@"
+fi
+if [ -n "${REPOS_USERS:-}" ]; then
+    while IFS= read -r REPOS_USER; do
+        if [ -n "$REPOS_USER" ]; then
+            set -- --user "$REPOS_USER" "$@"
+        fi
+    done < <(printf '%s\n' "$REPOS_USERS")
+fi
+if [ -n "${REPOS_ORGS:-}" ]; then
+    while IFS= read -r REPOS_ORG; do
+        if [ -n "$REPOS_ORG" ]; then
+            set -- --org "$REPOS_ORG" "$@"
+        fi
+    done < <(printf '%s\n' "$REPOS_ORGS")
+fi
+if [ -n "${REPOS:-}" ]; then
+    while IFS= read -r REPO; do
+        if [ -n "$REPO" ]; then
+            set -- "$@" "$REPO"
+        fi
+    done < <(printf '%s\n' "$REPOS")
+fi
+
 # helper
 print_usage() {
     echo "Usage:"
@@ -165,57 +216,6 @@ load_workflows() {
     __RESULT_DEAD="$(sed -ne 's#^\.github/workflows/\(.*\)$#\1#p' <<< "$__RESULT_DEAD")"
     [ -z "$__RESULT_DEAD" ] || readarray -t WORKFLOWS_DEAD <<< "$__RESULT_DEAD"
 }
-
-# check dependencies
-if [ ! -x "$(which sed)" ]; then
-    echo "Missing required script dependency: sed" >&2
-    exit 1
-fi
-
-if [ ! -x "$(which curl)" ]; then
-    echo "Missing required script dependency: curl" >&2
-    exit 1
-fi
-
-if [ ! -x "$(which jq)" ]; then
-    echo "Missing required script dependency: jq" >&2
-    exit 1
-fi
-
-# convert env variables to options
-if [ "${INCLUDE_FORKS:-false}" == "true" ]; then
-    set -- --forks "$@"
-fi
-if [ "${OWNER_REPOS:-false}" == "true" ]; then
-    set -- --owner "$@"
-fi
-if [ "${COLLABORATOR_REPOS:-false}" == "true" ]; then
-    set -- --collaborator "$@"
-fi
-if [ "${MEMBER_REPOS:-false}" == "true" ]; then
-    set -- --member "$@"
-fi
-if [ -n "${REPOS_USERS:-}" ]; then
-    while IFS= read -r REPOS_USER; do
-        if [ -n "$REPOS_USER" ]; then
-            set -- --user "$REPOS_USER" "$@"
-        fi
-    done < <(printf '%s\n' "$REPOS_USERS")
-fi
-if [ -n "${REPOS_ORGS:-}" ]; then
-    while IFS= read -r REPOS_ORG; do
-        if [ -n "$REPOS_ORG" ]; then
-            set -- --org "$REPOS_ORG" "$@"
-        fi
-    done < <(printf '%s\n' "$REPOS_ORGS")
-fi
-if [ -n "${REPOS:-}" ]; then
-    while IFS= read -r REPO; do
-        if [ -n "$REPO" ]; then
-            set -- "$@" "$REPO"
-        fi
-    done < <(printf '%s\n' "$REPOS")
-fi
 
 # parse options
 FORKS=
