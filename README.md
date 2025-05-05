@@ -9,7 +9,7 @@ GitHub will suspend scheduled triggers of GitHub workflows of public repositorie
 
 The `gh-workflow-immortality.sh` script simply iterates all your GitHub repositories and force enables your workflows, so that the workflow's inactivity counter is reset. Your scheduled triggers will run indefinitely and your workflows won't ever get suspended by GitHub for inactivity (they are "immortal"). The script will re-enable workflows that were previously disabled due to inactivity, but not workflows that were disabled manually.
 
-The script was written to run with [GNU Bash](https://www.gnu.org/software/bash/). It requires the [`sed`](https://sed.sourceforge.io/), [`curl`](https://curl.se/), and [`jq`](https://jqlang.github.io/jq/) command line tools to be installed.
+The script was written to run with [GNU Bash](https://www.gnu.org/software/bash/). It requires the [`sed`](https://sed.sourceforge.io/), [`awk`](https://linux.die.net/man/1/awk), [`curl`](https://curl.se/), and [`jq`](https://jqlang.github.io/jq/) command line tools to be installed.
 
 Made with :heart: by [Daniel Rudolf](https://www.daniel-rudolf.de/) ([@PhrozenByte](https://github.com/PhrozenByte)). GitHub Workflow Immortality is free and open source software, released under the terms of the [MIT license](LICENSE).
 

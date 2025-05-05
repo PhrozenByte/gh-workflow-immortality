@@ -25,6 +25,11 @@ if [ ! -x "$(which sed)" ]; then
     exit 1
 fi
 
+if [ ! -x "$(which awk)" ]; then
+    echo "Missing required script dependency: awk" >&2
+    exit 1
+fi
+
 if [ ! -x "$(which curl)" ]; then
     echo "Missing required script dependency: curl" >&2
     exit 1
