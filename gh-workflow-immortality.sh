@@ -83,22 +83,23 @@ print_usage() {
 }
 
 __curl() {
-    local RESPONSE="$(curl -sSL -i "$@")"
-    local RETURN_CODE=$?
+    local RETURN_CODE=0
+    local RESPONSE="$(curl -sSL -i "$@" || { RETURN_CODE=$?; true; })"
 
-    local HEADERS="$(sed -ne '1,/^\r$/{s/\r$//p}' <<< "$RESPONSE")"
-    local BODY="$(sed -e '1,/^\r$/d' <<< "$RESPONSE")"
+    local HEADERS="$(awk '{ sub(/\r$/, "") } /^HTTP\/[0-9.]+ ([0-9]+)( .*)?$/{ header=1 } header{ print } /^$/{ header=0 }' <<< "$RESPONSE")"
+    local HEADERS_FINAL="$(awk '/^HTTP\/[0-9.]+ ([0-9]+)( .*)?$/{ headers="" } { headers=headers $0 "\n" } END{ print headers }' <<< "$HEADERS")"
+    local BODY="$(tail -n "+$(($(wc -l <<< "$HEADERS")+2))" <<< "$RESPONSE")"
 
-    local STATUS_CODE="$(sed -ne '1{s#^HTTP/[0-9.]* \([0-9]*\)\( .*\)\?$#\1#p}' <<< "$HEADERS")"
-    if [ -z "$STATUS_CODE" ] || (( $STATUS_CODE < 100 )) || (( $STATUS_CODE >= 300 )); then
+    local STATUS_CODE="$(sed -ne '1{s#^HTTP/[0-9.]* \([0-9]*\)\( .*\)\?$#\1#p}' <<< "$HEADERS_FINAL")"
+    if [ -z "$STATUS_CODE" ] || (( $STATUS_CODE < 200 )) || (( $STATUS_CODE >= 300 )); then
         [ $RETURN_CODE -ne 0 ] || RETURN_CODE=22
 
-        local STATUS_STRING="$(sed -ne '1{s#^HTTP/[0-9.]* \(.*\)$#\1#p}' <<< "$HEADERS")"
+        local STATUS_STRING="$(sed -ne '1{s#^HTTP/[0-9.]* \(.*\)$#\1#p}' <<< "$HEADERS_FINAL")"
         echo "curl: (22) The requested URL '${@: -1}' returned error: $STATUS_STRING" >&2
         printf '%s\n' "$BODY" >&2
     fi
 
-    printf '%s\n\n%s\n' "$HEADERS" "$BODY"
+    printf '%s\n\n%s\n' "$HEADERS_FINAL" "$BODY"
     return $RETURN_CODE
 }
 
