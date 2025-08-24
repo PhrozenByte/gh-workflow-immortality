@@ -1,6 +1,12 @@
 Changelog of GitHub Workflow Immortality
 ========================================
 
+### Version 1.1.3
+Released: 2025-08-24
+
+* [[#3]](https://github.com/PhrozenByte/gh-workflow-immortality/pull/3) Trim environment variables before usage to support GitHub Action variables [[85f28bb]](https://github.com/PhrozenByte/gh-workflow-immortality/commit/85f28bb)
+* Various small improvements [[febd188]](https://github.com/PhrozenByte/gh-workflow-immortality/commit/febd188) [[031c085]](https://github.com/PhrozenByte/gh-workflow-immortality/commit/031c085)
+
 ### Version 1.1.2
 Released: 2025-05-06
 
