@@ -146,7 +146,7 @@ gh_api() {
 
     # send additional HTTP requests to fetch all pages
     local PAGE_COUNT="$(sed -ne 's/^Link: .*<.*[?&]page=\([0-9]*\)>; rel="last".*/\1/Ip' <<< "$HEADERS")"
-    if [ -n "$PAGE_COUNT" ] && (( $PAGE_COUNT > 0 )); then
+    if [ -n "$PAGE_COUNT" ] && (( PAGE_COUNT > 1 )); then
         local PAGE_PARAM="$(awk '{print (/?/ ? "&" : "?")}' <<< "$ENDPOINT")page="
         local PAGE PAGE_RESULT
 
