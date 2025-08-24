@@ -58,21 +58,21 @@ if [ -n "${REPOS_USERS:-}" ]; then
         if [ -n "$REPOS_USER" ]; then
             set -- --user "$REPOS_USER" "$@"
         fi
-    done < <(printf '%s\n' "$REPOS_USERS")
+    done < <(printf '%s\n' "$REPOS_USERS" | sed 's/^\s*//;s/\s*$//;/^$/d')
 fi
 if [ -n "${REPOS_ORGS:-}" ]; then
     while IFS= read -r REPOS_ORG; do
         if [ -n "$REPOS_ORG" ]; then
             set -- --org "$REPOS_ORG" "$@"
         fi
-    done < <(printf '%s\n' "$REPOS_ORGS")
+    done < <(printf '%s\n' "$REPOS_ORGS" | sed 's/^\s*//;s/\s*$//;/^$/d')
 fi
 if [ -n "${REPOS:-}" ]; then
     while IFS= read -r REPO; do
         if [ -n "$REPO" ]; then
             set -- "$@" "$REPO"
         fi
-    done < <(printf '%s\n' "$REPOS")
+    done < <(printf '%s\n' "$REPOS" | sed 's/^\s*//;s/\s*$//;/^$/d')
 fi
 
 # helper functions
