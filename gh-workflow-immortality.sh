@@ -21,7 +21,7 @@ EXIT_CODE=0
 
 # check script dependencies
 (( BASH_VERSINFO[0] > 4 )) || (( BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 2 )) \
-    || { echo "Missing required script dependency: Bash 4.2 or later"; exit 1; }
+    || { echo "Missing required script dependency: Bash 4.2 or later. On macOS, install it with 'brew install bash' and run this script with '\$(brew --prefix bash)/bin/bash'."; exit 1; }
 [ -x "$(type -P sed)" ] || { echo "Missing required script dependency: sed" >&2; exit 1; }
 [ -x "$(type -P awk)" ] || { echo "Missing required script dependency: awk" >&2; exit 1; }
 [ -x "$(type -P curl)" ] || { echo "Missing required script dependency: curl" >&2; exit 1; }
@@ -67,7 +67,7 @@ __curl() {
     local HEADERS_FINAL="$(awk '/^HTTP\/[0-9.]+ ([0-9]+)( .*)?$/{ headers="" } { headers=headers $0 "\n" } END{ print headers }' <<< "$HEADERS")"
     local BODY="$(tail -n "+$(($(wc -l <<< "$HEADERS")+2))" <<< "$RESPONSE")"
 
-    local STATUS_CODE="$(sed -ne '1s#^HTTP/[0-9.]* \([0-9]*\)\( .*\)\?$#\1#p' <<< "$HEADERS_FINAL")"
+    local STATUS_CODE="$(sed -ne '1s#^HTTP/[0-9.]* \([0-9]*\)\( .*\)\{0,1\}$#\1#p' <<< "$HEADERS_FINAL")"
     if [ -z "$STATUS_CODE" ] || (( STATUS_CODE < 200 )) || (( STATUS_CODE >= 300 )); then
         [ $RETURN_CODE -ne 0 ] || RETURN_CODE=22
 
